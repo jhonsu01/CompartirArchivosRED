@@ -1,0 +1,51 @@
+# ==== Agent orchestration framework (no forma parte de la app) ====
+.claude/
+.tmp/
+memory/
+directives/
+execution/
+.codegraph/
+.slurp/
+.mcp.json
+AGENTS.md
+GEMINI.md
+CLAUDE.md
+
+# ==== Android / Gradle ====
+android/.gradle/
+android/build/
+android/app/build/
+android/captures/
+android/local.properties
+android/.idea/
+android/*.iml
+android/app/*.iml
+android/.kotlin/
+*.hprof
+
+# ==== .NET / Windows ====
+windows/**/bin/
+windows/**/obj/
+windows/**/.vs/
+windows/publish/
+*.user
+
+# ==== WiX / instaladores ====
+windows/installer/bin/
+windows/installer/obj/
+*.wixpdb
+
+# ==== Salidas de build / artefactos ====
+dist/
+out/
+*.apk
+*.aab
+*.msi
+*.keystore
+!android/app/debug.keystore
+
+# ==== SO / editores ====
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.log

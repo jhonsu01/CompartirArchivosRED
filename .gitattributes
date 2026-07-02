@@ -1,0 +1,18 @@
+# Normalización de fin de línea
+* text=auto
+
+# Scripts de shell y wrapper de Gradle deben conservar LF
+*.sh text eol=lf
+gradlew text eol=lf
+
+# Scripts de Windows con CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binarios (sin conversión)
+*.jar binary
+*.apk binary
+*.msi binary
+*.png binary
+*.ico binary
+*.keystore binary
