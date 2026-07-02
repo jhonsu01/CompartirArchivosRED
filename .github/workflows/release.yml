@@ -1,10 +1,13 @@
 name: Release
 
-# Se dispara al hacer push de un tag de versión (p. ej. v0.1.0).
+# Se dispara al hacer push de un tag de versión (p. ej. v0.1.0),
+# al publicar una Release desde la web de GitHub, o manualmente.
 on:
   push:
     tags:
       - 'v*'
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       version:
