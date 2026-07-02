@@ -115,8 +115,8 @@ public partial class MainWindow : Window
         var win = new Window
         {
             Title = "PIN de emparejamiento",
-            Width = 380,
-            Height = 210,
+            Width = 400,
+            SizeToContent = SizeToContent.Height,
             ResizeMode = ResizeMode.NoResize,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Owner = this,

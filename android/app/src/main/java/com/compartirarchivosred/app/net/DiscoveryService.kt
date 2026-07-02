@@ -21,6 +21,7 @@ class DiscoveryService(
     @Volatile private var running = false
     private var socket: DatagramSocket? = null
     private var multicastLock: WifiManager.MulticastLock? = null
+    private var wifiLock: WifiManager.WifiLock? = null
     private val peers = ConcurrentHashMap<String, Peer>()
 
     fun start() {
@@ -32,6 +33,13 @@ class DiscoveryService(
             setReferenceCounted(true)
             acquire()
         }
+        wifiLock = try {
+            @Suppress("DEPRECATION")
+            wifi.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "compartirarchivosred-wifi").apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+        } catch (_: Exception) { null }
 
         val s = DatagramSocket(null).apply {
             reuseAddress = true
@@ -101,5 +109,6 @@ class DiscoveryService(
         running = false
         try { socket?.close() } catch (_: Exception) {}
         try { multicastLock?.release() } catch (_: Exception) {}
+        try { wifiLock?.release() } catch (_: Exception) {}
     }
 }

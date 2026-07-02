@@ -1,6 +1,14 @@
 package com.compartirarchivosred.app
 
+import android.Manifest
+import android.app.UiModeManager
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -33,6 +41,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,11 +49,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.compartirarchivosred.app.model.IncomingInfo
 import com.compartirarchivosred.app.model.Peer
@@ -55,6 +66,9 @@ import com.compartirarchivosred.app.ui.theme.AppTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Mantener la pantalla encendida mientras la app está abierta (evita que el
+        // dispositivo entre en reposo y se desconecte de la red).
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContent {
             AppTheme {
                 AppScreen(viewModel())
@@ -65,9 +79,11 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppScreen(vm: MainViewModel) {
+    val context = LocalContext.current
     var selectedId by remember { mutableStateOf<String?>(null) }
     val selectedPeer = vm.peers.firstOrNull { it.id == selectedId }
-    var explorerVisible by remember { mutableStateOf(false) }
+    var explorerMode by remember { mutableStateOf<String?>(null) } // null | "send" | "folder"
+    var logExpanded by remember { mutableStateOf(false) }
 
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()
@@ -80,11 +96,31 @@ fun AppScreen(vm: MainViewModel) {
         ActivityResultContracts.OpenDocumentTree()
     ) { uri -> if (uri != null) vm.setReceiveFolder(uri) }
 
-    if (explorerVisible && selectedPeer != null) {
+    // Permiso de notificaciones (Android 13+).
+    val notifPermLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    if (explorerMode != null && (explorerMode == "folder" || selectedPeer != null)) {
+        val folderMode = explorerMode == "folder"
         FileExplorerScreen(
-            peerName = selectedPeer.name,
-            onPick = { files -> vm.sendLocal(selectedPeer, files); explorerVisible = false },
-            onClose = { explorerVisible = false }
+            title = if (folderMode) "Elegir carpeta de recepción"
+            else "Enviar a ${selectedPeer?.name ?: ""}",
+            pickFolder = folderMode,
+            onPickFiles = { files ->
+                selectedPeer?.let { vm.sendLocal(it, files) }
+                explorerMode = null
+            },
+            onPickFolder = { dir -> vm.setReceiveDir(dir); explorerMode = null },
+            onClose = { explorerMode = null }
         )
         return
     }
@@ -132,7 +168,12 @@ fun AppScreen(vm: MainViewModel) {
                         )
                     }
                     Spacer(Modifier.width(8.dp))
-                    OutlinedButton(onClick = { folderPicker.launch(null) }) { Text("Cambiar") }
+                    OutlinedButton(onClick = {
+                        val tree = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+                        if (!isTv(context) && tree.resolveActivity(context.packageManager) != null)
+                            folderPicker.launch(null)
+                        else explorerMode = "folder"
+                    }) { Text("Cambiar") }
                 }
             }
 
@@ -178,23 +219,37 @@ fun AppScreen(vm: MainViewModel) {
                 trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
 
-            Spacer(Modifier.height(12.dp))
-            Card(
-                modifier = Modifier
-                    .height(120.dp)
-                    .fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(8.dp),
-                    reverseLayout = true
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    vm.log.lastOrNull() ?: "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(onClick = { logExpanded = !logExpanded }) {
+                    Text(if (logExpanded) "Ocultar registro" else "Ver registro")
+                }
+            }
+            if (logExpanded) {
+                Card(
+                    modifier = Modifier
+                        .height(140.dp)
+                        .fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    items(vm.log.asReversed()) { line ->
-                        Text(
-                            line,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                        reverseLayout = true
+                    ) {
+                        items(vm.log.asReversed()) { line ->
+                            Text(
+                                line,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -202,15 +257,21 @@ fun AppScreen(vm: MainViewModel) {
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 OutlinedButton(
-                    onClick = { explorerVisible = true },
+                    onClick = { explorerMode = "send" },
                     enabled = selectedPeer != null
                 ) { Text("📁 Explorador") }
                 Spacer(Modifier.width(8.dp))
                 Button(
                     onClick = {
-                        // El selector del sistema no existe en muchas Android TV;
-                        // si falla, se abre el explorador interno automáticamente.
-                        try { picker.launch("*/*") } catch (e: Exception) { explorerVisible = true }
+                        // Si el dispositivo no tiene selector de documentos (Android TV),
+                        // se abre el explorador interno.
+                        val getContent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                            type = "*/*"
+                            addCategory(Intent.CATEGORY_OPENABLE)
+                        }
+                        if (!isTv(context) && getContent.resolveActivity(context.packageManager) != null)
+                            picker.launch("*/*")
+                        else explorerMode = "send"
                     },
                     enabled = selectedPeer != null
                 ) {
@@ -321,4 +382,10 @@ private fun PinDialog(peerName: String, onSubmit: (String) -> Unit, onCancel: ()
         confirmButton = { TextButton(onClick = { onSubmit(pin) }) { Text("Aceptar") } },
         dismissButton = { TextButton(onClick = onCancel) { Text("Cancelar") } }
     )
+}
+
+/** True si el dispositivo es una Android TV (no tiene selector de documentos del sistema). */
+private fun isTv(context: Context): Boolean {
+    val ui = context.getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
+    return ui?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
 }

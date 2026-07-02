@@ -54,8 +54,10 @@ import java.util.Locale
 
 @Composable
 fun FileExplorerScreen(
-    peerName: String,
-    onPick: (List<File>) -> Unit,
+    title: String,
+    pickFolder: Boolean,
+    onPickFiles: (List<File>) -> Unit,
+    onPickFolder: (File) -> Unit,
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
@@ -76,21 +78,16 @@ fun FileExplorerScreen(
             .padding(16.dp)
     ) {
         Text(
-            "Explorador de archivos",
+            title,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
-        )
-        Text(
-            "Enviar a: $peerName",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(12.dp))
 
         if (!granted) {
             Text(
-                "Para explorar y enviar archivos, concede acceso al almacenamiento del dispositivo.",
+                "Para explorar archivos, concede acceso al almacenamiento del dispositivo.",
                 color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(Modifier.height(12.dp))
@@ -128,7 +125,7 @@ fun FileExplorerScreen(
         val root = remember { Environment.getExternalStorageDirectory() ?: context.filesDir }
         var currentDir by remember { mutableStateOf(root) }
         val selected = remember { mutableStateListOf<String>() }
-        val entries = remember(currentDir) { listEntries(currentDir) }
+        val entries = remember(currentDir, pickFolder) { listEntries(currentDir, pickFolder) }
 
         Text(
             currentDir.absolutePath,
@@ -147,6 +144,7 @@ fun FileExplorerScreen(
                 item {
                     EntryRow(icon = "⬆", name = "..", subtitle = "Subir un nivel", selected = false) {
                         currentDir = currentDir.parentFile ?: root
+                        selected.clear()
                     }
                 }
             }
@@ -154,6 +152,7 @@ fun FileExplorerScreen(
                 if (entry.isDirectory) {
                     EntryRow(icon = "📁", name = entry.name, subtitle = "Carpeta · ${fmtDate(entry)}", selected = false) {
                         currentDir = entry
+                        selected.clear()
                     }
                 } else {
                     val isSel = selected.contains(entry.absolutePath)
@@ -177,34 +176,20 @@ fun FileExplorerScreen(
         ) {
             TextButton(onClick = onClose) { Text("Cancelar") }
             Spacer(Modifier.width(8.dp))
-            OutlinedButton(
-                onClick = { openFile(context, File(selected.first())) },
-                enabled = selected.size == 1
-            ) { Text("Abrir") }
-            Spacer(Modifier.width(8.dp))
-            Button(
-                onClick = { onPick(selected.map { File(it) }) },
-                enabled = selected.isNotEmpty()
-            ) { Text("Enviar (${selected.size})") }
+            if (pickFolder) {
+                Button(onClick = { onPickFolder(currentDir) }) { Text("Usar esta carpeta") }
+            } else {
+                OutlinedButton(
+                    onClick = { openFile(context, File(selected.first())) },
+                    enabled = selected.size == 1
+                ) { Text("Abrir") }
+                Spacer(Modifier.width(8.dp))
+                Button(
+                    onClick = { onPickFiles(selected.map { File(it) }) },
+                    enabled = selected.isNotEmpty()
+                ) { Text("Enviar (${selected.size})") }
+            }
         }
-    }
-}
-
-private fun fmtDate(file: File): String =
-    SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(file.lastModified()))
-
-private fun openFile(context: Context, file: File) {
-    try {
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        val ext = file.name.substringAfterLast('.', "").lowercase()
-        val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, mime)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        context.startActivity(Intent.createChooser(intent, "Abrir con"))
-    } catch (e: Exception) {
-        Toast.makeText(context, "No hay una app para abrir este archivo.", Toast.LENGTH_LONG).show()
     }
 }
 
@@ -242,9 +227,36 @@ private fun hasStorageAccess(context: Context): Boolean {
     }
 }
 
-private fun listEntries(dir: File): List<File> {
-    val files = dir.listFiles()?.toList() ?: emptyList()
+private fun listEntries(dir: File, foldersOnly: Boolean): List<File> {
+    var files = dir.listFiles()?.toList() ?: emptyList()
+    if (foldersOnly) files = files.filter { it.isDirectory }
     return files.sortedWith(
         compareByDescending<File> { it.isDirectory }.thenBy { it.name.lowercase() }
     )
+}
+
+private fun fmtDate(file: File): String =
+    SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(file.lastModified()))
+
+private fun openFile(context: Context, file: File) {
+    try {
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val ext = file.name.substringAfterLast('.', "").lowercase()
+        val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, mime)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        if (intent.resolveActivity(context.packageManager) == null) {
+            Toast.makeText(
+                context,
+                "No hay ninguna app en este dispositivo para abrir este archivo.",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+        context.startActivity(Intent.createChooser(intent, "Abrir con"))
+    } catch (e: Exception) {
+        Toast.makeText(context, "No se pudo abrir el archivo.", Toast.LENGTH_LONG).show()
+    }
 }

@@ -26,13 +26,17 @@ class TransferService(
     private val selfName: String,
     private val onLog: (String) -> Unit,
     private val onProgress: (Float) -> Unit,
-    private val onIncoming: (IncomingInfo?) -> Unit
+    private val onIncoming: (IncomingInfo?) -> Unit,
+    private val onNotify: (String, String) -> Unit = { _, _ -> }
 ) {
     @Volatile private var running = false
     private var serverSocket: ServerSocket? = null
 
-    /** Carpeta de recepción elegida por el usuario (SAF). Si es null, se usa [downloadDir]. */
+    /** Carpeta de recepción elegida por el usuario (SAF). Si es null, se prueba [receiveDir]. */
     @Volatile var receiveTreeUri: Uri? = null
+
+    /** Carpeta de recepción elegida por el explorador interno (File). Si es null, se usa [downloadDir]. */
+    @Volatile var receiveDir: File? = null
 
     val downloadDir: File =
         (context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
@@ -88,6 +92,7 @@ class TransferService(
 
             val total = if (info.totalSize > 0) info.totalSize else 1L
             var done = 0L
+            var count = 0
             while (true) {
                 val line = f.readLine() ?: break
                 val m = JSONObject(line)
@@ -105,7 +110,14 @@ class TransferService(
                     }
                 }
                 done += size
+                count++
                 onLog("Recibido: $savedName (${formatSize(size)})")
+            }
+            if (ok && count > 0) {
+                onNotify(
+                    "Archivos recibidos",
+                    "$count archivo(s) de ${info.senderName}"
+                )
             }
         } catch (e: Exception) {
             onLog("Error en recepción: ${e.message}")
@@ -190,6 +202,7 @@ class TransferService(
                 }
                 f.writeLine(msg(Proto.DONE))
                 onLog("Transferencia completada.")
+                onNotify("Envío completado", "${items.size} archivo(s) a ${peer.name}")
                 return true
             }
         } catch (e: Exception) {
@@ -255,10 +268,20 @@ class TransferService(
                     }
                 }
             } catch (_: Exception) {
-                // Si falla la carpeta SAF, se cae a la carpeta interna.
+                // Si falla la carpeta SAF, se prueba la carpeta File o la interna.
             }
         }
-        val file = uniqueFile(name)
+        val dir = receiveDir
+        if (dir != null) {
+            try {
+                dir.mkdirs()
+                val f = uniqueFileIn(dir, name)
+                return Pair(FileOutputStream(f), f.name)
+            } catch (_: Exception) {
+                // Si falla, se cae a la carpeta interna.
+            }
+        }
+        val file = uniqueFileIn(downloadDir, name)
         return Pair(FileOutputStream(file), file.name)
     }
 
@@ -268,15 +291,15 @@ class TransferService(
             ?: "application/octet-stream"
     }
 
-    private fun uniqueFile(name: String): File {
-        var f = File(downloadDir, name)
+    private fun uniqueFileIn(dir: File, name: String): File {
+        var f = File(dir, name)
         if (!f.exists()) return f
         val dot = name.lastIndexOf('.')
         val base = if (dot > 0) name.substring(0, dot) else name
         val ext = if (dot > 0) name.substring(dot) else ""
         var i = 1
         while (true) {
-            f = File(downloadDir, "$base ($i)$ext")
+            f = File(dir, "$base ($i)$ext")
             if (!f.exists()) return f
             i++
         }

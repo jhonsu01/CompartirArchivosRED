@@ -6,6 +6,26 @@ y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-02
+
+### Añadido
+
+- **Notificaciones** al completar un envío y al recibir archivos (canal "Transferencias").
+- **Registro (consola) plegable**: se muestra solo la última línea; botón "Ver registro" para desplegar el
+  historial completo.
+- **Pantalla siempre activa** mientras la app está abierta (evita que el dispositivo entre en reposo y se
+  desconecte); además se mantiene un WifiLock.
+- **Explorador interno como selector de carpeta de recepción** en Android TV: si el dispositivo no tiene
+  selector de documentos del sistema, "Cambiar" abre el explorador para elegir la carpeta.
+
+### Corregido
+
+- **Android TV**: "Enviar" y "Cambiar carpeta" ya no fallan ni sacan de la app; se detecta la ausencia de
+  selector del sistema (TV) y se usa el explorador interno.
+- **Explorador: "Abrir"** ahora comprueba si existe una app compatible y avisa con claridad si no la hay
+  (antes mostraba el error del sistema en TV).
+- **App de escritorio**: los botones del diálogo de PIN ya no se cortan (el diálogo ajusta su alto).
+
 ## [0.3.0] - 2026-07-02
 
 ### Añadido
@@ -54,7 +74,8 @@ y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Protocolo común documentado en `shared/protocol/PROTOCOL.md`.
 - CI/CD con GitHub Actions: build + publicación automática de **APK** y **MSI** en cada release (tag `v*`).
 
-[Unreleased]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jhonsu01/CompartirArchivosRED/releases/tag/v0.1.0
