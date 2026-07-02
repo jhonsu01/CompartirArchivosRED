@@ -19,20 +19,60 @@ public sealed class TransferService : IDisposable
     private TcpListener? _listener;
     private CancellationTokenSource? _cts;
 
-    public string DownloadFolder { get; }
+    public string DownloadFolder { get; private set; }
 
     public event Action<string>? Log;
     public event Action<double>? Progress;              // 0..1
     public event Action<IncomingInfo>? IncomingStarted; // mostrar PIN al usuario
     public event Action<bool>? IncomingFinished;        // éxito?
 
+    private static string DefaultFolder => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        "Downloads", "CompartirArchivosRED");
+
+    private static string SettingsFile => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "CompartirArchivosRED", "download-folder.txt");
+
     public TransferService(string selfName)
     {
         _selfName = selfName;
-        DownloadFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "Downloads", "CompartirArchivosRED");
-        Directory.CreateDirectory(DownloadFolder);
+        DownloadFolder = LoadFolder();
+        try { Directory.CreateDirectory(DownloadFolder); }
+        catch { DownloadFolder = DefaultFolder; Directory.CreateDirectory(DownloadFolder); }
+    }
+
+    private static string LoadFolder()
+    {
+        try
+        {
+            if (File.Exists(SettingsFile))
+            {
+                var saved = File.ReadAllText(SettingsFile).Trim();
+                if (!string.IsNullOrWhiteSpace(saved)) return saved;
+            }
+        }
+        catch { }
+        return DefaultFolder;
+    }
+
+    /// <summary>Cambia la carpeta de descargas y la persiste. Devuelve true si OK.</summary>
+    public bool ChangeDownloadFolder(string path)
+    {
+        try
+        {
+            Directory.CreateDirectory(path);
+            DownloadFolder = path;
+            Directory.CreateDirectory(Path.GetDirectoryName(SettingsFile)!);
+            File.WriteAllText(SettingsFile, path);
+            Log?.Invoke($"Carpeta de descargas: {path}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log?.Invoke("No se pudo cambiar la carpeta: " + ex.Message);
+            return false;
+        }
     }
 
     public void StartServer()

@@ -32,6 +32,7 @@ try {
     wix build Package.wxs -arch x64 `
         -d Version=$Version -d PublishDir=$publishDir `
         -ext WixToolset.UI.wixext `
+        -ext WixToolset.Firewall.wixext `
         -o $msi
     if ($LASTEXITCODE -ne 0) { throw "wix build falló." }
 }

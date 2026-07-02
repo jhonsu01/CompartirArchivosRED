@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 
@@ -62,13 +63,50 @@ public sealed class DiscoveryService : IDisposable
             Port = Proto.TransferPort
         };
         byte[] data = Encoding.UTF8.GetBytes(msg.ToJson());
-        var ep = new IPEndPoint(IPAddress.Broadcast, Proto.DiscoveryPort);
 
         while (!ct.IsCancellationRequested)
         {
-            try { _udp!.Send(data, data.Length, ep); } catch { }
+            // Enviar a la dirección de broadcast de CADA interfaz activa.
+            // En equipos con varias tarjetas (Wi-Fi + Ethernet + adaptadores
+            // virtuales) el broadcast global 255.255.255.255 sale por una sola
+            // interfaz —a menudo la equivocada—, por lo que otros dispositivos
+            // no ven a este equipo. Emitir por cada subred lo soluciona.
+            foreach (var ep in BroadcastTargets())
+            {
+                try { _udp!.Send(data, data.Length, ep); } catch { }
+            }
             try { await Task.Delay(2000, ct); } catch { break; }
         }
+    }
+
+    private static List<IPEndPoint> BroadcastTargets()
+    {
+        var targets = new List<IPEndPoint>();
+        try
+        {
+            foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (ni.OperationalStatus != OperationalStatus.Up) continue;
+                if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+
+                foreach (var ua in ni.GetIPProperties().UnicastAddresses)
+                {
+                    if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
+                    var ip = ua.Address.GetAddressBytes();
+                    var mask = ua.IPv4Mask?.GetAddressBytes();
+                    if (mask == null || mask.Length != 4) continue;
+
+                    var bcast = new byte[4];
+                    for (int i = 0; i < 4; i++) bcast[i] = (byte)(ip[i] | (~mask[i] & 0xFF));
+                    targets.Add(new IPEndPoint(new IPAddress(bcast), Proto.DiscoveryPort));
+                }
+            }
+        }
+        catch { }
+
+        // Fallback: broadcast global limitado.
+        targets.Add(new IPEndPoint(IPAddress.Broadcast, Proto.DiscoveryPort));
+        return targets;
     }
 
     private async Task ListenLoop(CancellationToken ct)

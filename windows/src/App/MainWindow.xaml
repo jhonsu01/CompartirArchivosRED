@@ -1,7 +1,8 @@
 <Window x:Class="CompartirArchivosRED.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Compartir Archivos RED" Height="620" Width="880"
+        Title="Compartir Archivos RED" Height="640" Width="900"
+        MinHeight="560" MinWidth="720"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BgBrush}"
         TextElement.Foreground="{StaticResource TextBrush}"
@@ -11,21 +12,39 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Cabecera -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,14">
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
             <TextBlock Text="📡 Compartir Archivos RED" FontSize="24" FontWeight="Bold"/>
             <TextBlock x:Name="SelfInfo" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
         </StackPanel>
 
+        <!-- Carpeta de descargas -->
+        <Border Grid.Row="1" Background="{StaticResource SurfaceBrush}" CornerRadius="8" Padding="10" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="Carpeta de descargas" Foreground="{StaticResource MutedBrush}" FontSize="12"/>
+                    <TextBlock x:Name="FolderText" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+                <Button Grid.Column="1" x:Name="ChangeFolderBtn" Content="Cambiar…" Click="ChangeFolderBtn_Click"
+                        Background="{StaticResource SurfaceAltBrush}" Foreground="{StaticResource TextBrush}"
+                        VerticalAlignment="Center" Margin="10,0,0,0"/>
+            </Grid>
+        </Border>
+
         <!-- Banner PIN entrante -->
-        <Border x:Name="PinBanner" Grid.Row="1" Visibility="Collapsed"
+        <Border x:Name="PinBanner" Grid.Row="2" Visibility="Collapsed"
                 Background="{StaticResource SurfaceAltBrush}" CornerRadius="10"
-                Padding="16" Margin="0,0,0,14" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1">
+                Padding="16" Margin="0,0,0,12" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1">
             <StackPanel>
                 <TextBlock x:Name="PinBannerTitle" FontWeight="SemiBold"/>
                 <TextBlock Text="Comparte este PIN con quien te envía:" Foreground="{StaticResource MutedBrush}" Margin="0,6,0,4"/>
@@ -35,7 +54,7 @@
         </Border>
 
         <!-- Lista de dispositivos -->
-        <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" CornerRadius="10" Padding="8">
+        <Border Grid.Row="3" Background="{StaticResource SurfaceBrush}" CornerRadius="10" Padding="8" MinHeight="120">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top" Text="Dispositivos en tu red" FontWeight="SemiBold"
                            Margin="8,6,8,8"/>
@@ -60,20 +79,20 @@
             </DockPanel>
         </Border>
 
-        <!-- Barra de progreso -->
-        <StackPanel Grid.Row="3" Margin="0,12,0,10">
+        <!-- Barra de progreso + log -->
+        <StackPanel Grid.Row="4" Margin="0,12,0,10">
             <ProgressBar x:Name="Progress" Height="8" Minimum="0" Maximum="1" Value="0"
                          Foreground="{StaticResource AccentBrush}" Background="{StaticResource SurfaceAltBrush}"
                          BorderThickness="0"/>
-            <TextBox x:Name="LogBox" Height="96" Margin="0,10,0,0" IsReadOnly="True"
+            <TextBox x:Name="LogBox" Height="84" Margin="0,10,0,0" IsReadOnly="True"
                      Background="{StaticResource SurfaceBrush}" Foreground="{StaticResource MutedBrush}"
                      BorderThickness="0" FontFamily="Consolas" FontSize="12"
                      VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
         </StackPanel>
 
         <!-- Acciones -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button x:Name="OpenFolderBtn" Content="Abrir carpeta de descargas" Click="OpenFolderBtn_Click"
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="OpenFolderBtn" Content="Abrir carpeta" Click="OpenFolderBtn_Click"
                     Background="{StaticResource SurfaceAltBrush}" Foreground="{StaticResource TextBrush}" Margin="0,0,10,0"/>
             <Button x:Name="SendBtn" Content="📤 Enviar archivos" Click="SendBtn_Click" IsEnabled="False"/>
         </StackPanel>

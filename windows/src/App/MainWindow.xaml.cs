@@ -25,7 +25,8 @@ public partial class MainWindow : Window
         _discovery = new DiscoveryService(_selfId, _selfName);
         _transfer = new TransferService(_selfName);
 
-        SelfInfo.Text = $"Tu dispositivo: {_selfName}  ·  Descargas: {_transfer.DownloadFolder}";
+        SelfInfo.Text = $"Tu dispositivo: {_selfName}";
+        FolderText.Text = _transfer.DownloadFolder;
         PeersList.ItemsSource = _peers;
         PeersList.SelectionChanged += (_, _) => SendBtn.IsEnabled = PeersList.SelectedItem != null;
 
@@ -95,6 +96,17 @@ public partial class MainWindow : Window
     {
         try { Process.Start(new ProcessStartInfo(_transfer.DownloadFolder) { UseShellExecute = true }); }
         catch (Exception ex) { AppendLog("No se pudo abrir la carpeta: " + ex.Message); }
+    }
+
+    private void ChangeFolderBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFolderDialog
+        {
+            Title = "Elige la carpeta de descargas",
+            InitialDirectory = _transfer.DownloadFolder
+        };
+        if (dlg.ShowDialog() == true && _transfer.ChangeDownloadFolder(dlg.FolderName))
+            FolderText.Text = _transfer.DownloadFolder;
     }
 
     /// <summary>Diálogo modal para introducir el PIN mostrado en el receptor.</summary>

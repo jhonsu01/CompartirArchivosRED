@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:fw="http://wixtoolset.org/schemas/v4/wxs/firewall">
 
   <Package Name="Compartir Archivos RED"
            Manufacturer="Jhon Supelano"
@@ -14,7 +15,7 @@
 
     <Icon Id="AppIcon" SourceFile="$(var.PublishDir)\CompartirArchivosRED.exe" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/USUARIO/CompartirArchivosRED" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/jhonsu01/CompartirArchivosRED" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="Compartir Archivos RED" />
@@ -41,9 +42,25 @@
       </Component>
     </ComponentGroup>
 
+    <!-- Excepción de firewall: permite recibir conexiones entrantes en la LAN
+         (descubrimiento UDP 45454 y transferencia TCP 45455). Sin esto, otros
+         dispositivos ven el equipo pero no pueden enviarle archivos. -->
+    <ComponentGroup Id="FirewallRules" Directory="INSTALLFOLDER">
+      <Component Id="FwInbound" Guid="3F8B9C21-7D4E-4A16-9C2B-5E7A1D0F6B84">
+        <fw:FirewallException Id="AppInbound"
+                              Name="Compartir Archivos RED"
+                              Program="[INSTALLFOLDER]CompartirArchivosRED.exe"
+                              Scope="localSubnet"
+                              Profile="all" />
+        <RegistryValue Root="HKLM" Key="Software\CompartirArchivosRED"
+                       Name="firewall" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
     <Feature Id="Main" Title="Compartir Archivos RED" Level="1">
       <ComponentGroupRef Id="AppFiles" />
       <ComponentGroupRef Id="AppShortcuts" />
+      <ComponentGroupRef Id="FirewallRules" />
     </Feature>
 
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />

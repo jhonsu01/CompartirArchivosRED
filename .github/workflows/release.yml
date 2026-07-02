@@ -95,9 +95,11 @@ jobs:
           dotnet tool install --global wix --version 5.0.2
           "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
 
-      - name: Añadir extensión WiX UI
+      - name: Añadir extensiones WiX
         shell: pwsh
-        run: wix extension add -g WixToolset.UI.wixext/5.0.2
+        run: |
+          wix extension add -g WixToolset.UI.wixext/5.0.2
+          wix extension add -g WixToolset.Firewall.wixext/5.0.2
 
       - name: Publicar app + construir MSI
         shell: pwsh
@@ -109,7 +111,7 @@ jobs:
           dotnet publish (Join-Path $ws "windows\src\App\CompartirArchivosRED.App.csproj") -c Release -r win-x64 --self-contained true -p:Version=$v -o $pub
           New-Item -ItemType Directory -Force (Join-Path $ws "dist") | Out-Null
           Push-Location (Join-Path $ws "windows\installer")
-          wix build Package.wxs -arch x64 -d Version=$v -d PublishDir=$pub -ext WixToolset.UI.wixext -o $out
+          wix build Package.wxs -arch x64 -d Version=$v -d PublishDir=$pub -ext WixToolset.UI.wixext -ext WixToolset.Firewall.wixext -o $out
           Pop-Location
 
       - uses: actions/upload-artifact@v4

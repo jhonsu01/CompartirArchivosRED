@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +27,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -47,6 +49,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.compartirarchivosred.app.model.IncomingInfo
 import com.compartirarchivosred.app.model.Peer
 import com.compartirarchivosred.app.net.formatSize
+import com.compartirarchivosred.app.ui.FileExplorerScreen
 import com.compartirarchivosred.app.ui.theme.AppTheme
 
 class MainActivity : ComponentActivity() {
@@ -64,12 +67,22 @@ class MainActivity : ComponentActivity() {
 fun AppScreen(vm: MainViewModel) {
     var selectedId by remember { mutableStateOf<String?>(null) }
     val selectedPeer = vm.peers.firstOrNull { it.id == selectedId }
+    var explorerVisible by remember { mutableStateOf(false) }
 
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()
     ) { uris ->
         val peer = vm.peers.firstOrNull { it.id == selectedId }
         if (peer != null && uris.isNotEmpty()) vm.send(peer, uris)
+    }
+
+    if (explorerVisible && selectedPeer != null) {
+        FileExplorerScreen(
+            peerName = selectedPeer.name,
+            onPick = { files -> vm.sendLocal(selectedPeer, files); explorerVisible = false },
+            onClose = { explorerVisible = false }
+        )
+        return
     }
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
@@ -161,11 +174,20 @@ fun AppScreen(vm: MainViewModel) {
 
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                OutlinedButton(
+                    onClick = { explorerVisible = true },
+                    enabled = selectedPeer != null
+                ) { Text("📁 Explorador") }
+                Spacer(Modifier.width(8.dp))
                 Button(
-                    onClick = { picker.launch("*/*") },
+                    onClick = {
+                        // El selector del sistema no existe en muchas Android TV;
+                        // si falla, se abre el explorador interno automáticamente.
+                        try { picker.launch("*/*") } catch (e: Exception) { explorerVisible = true }
+                    },
                     enabled = selectedPeer != null
                 ) {
-                    Text(if (selectedPeer != null) "📤 Enviar a ${selectedPeer.name}" else "📤 Enviar archivos")
+                    Text(if (selectedPeer != null) "📤 Enviar a ${selectedPeer.name}" else "📤 Enviar")
                 }
             }
         }

@@ -8,7 +8,9 @@ import com.compartirarchivosred.app.model.IncomingInfo
 import com.compartirarchivosred.app.model.Peer
 import org.json.JSONObject
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
@@ -107,15 +109,31 @@ class TransferService(
         }
     }
 
-    /**
-     * Envía los archivos indicados por sus [uris] al [peer].
-     * [pinProvider] bloquea hasta que el usuario introduce el PIN mostrado en el
-     * receptor; devuelve null si cancela.
-     */
-    fun sendFiles(peer: Peer, uris: List<Uri>, pinProvider: () -> String?): Boolean {
-        val metas = uris.mapNotNull { queryMeta(it) }.filter { it.size > 0 }
-        if (metas.isEmpty()) { onLog("No hay archivos válidos que enviar."); return false }
-        val total = metas.sumOf { it.size }
+    // ---- Envío ----
+
+    /** Elemento a enviar: nombre, tamaño y un abridor de flujo perezoso. */
+    private class OutItem(val name: String, val size: Long, val open: () -> InputStream)
+
+    /** Envía archivos elegidos con el selector del sistema (content URIs). */
+    fun sendUris(peer: Peer, uris: List<Uri>, pinProvider: () -> String?): Boolean {
+        val items = uris.mapNotNull { u ->
+            queryMeta(u)?.takeIf { it.size > 0 }?.let { meta ->
+                OutItem(meta.name, meta.size) { context.contentResolver.openInputStream(u)!! }
+            }
+        }
+        return sendItems(peer, items, pinProvider)
+    }
+
+    /** Envía archivos elegidos con el explorador interno (java.io.File). */
+    fun sendFiles(peer: Peer, files: List<File>, pinProvider: () -> String?): Boolean {
+        val items = files.filter { it.isFile && it.length() > 0 }
+            .map { file -> OutItem(file.name, file.length()) { FileInputStream(file) } }
+        return sendItems(peer, items, pinProvider)
+    }
+
+    private fun sendItems(peer: Peer, items: List<OutItem>, pinProvider: () -> String?): Boolean {
+        if (items.isEmpty()) { onLog("No hay archivos válidos que enviar."); return false }
+        val total = items.sumOf { it.size }
 
         try {
             Socket().use { sock ->
@@ -125,7 +143,7 @@ class TransferService(
                 f.writeLine(
                     JSONObject()
                         .put("v", Proto.VERSION).put("type", Proto.OFFER)
-                        .put("name", selfName).put("fileCount", metas.size)
+                        .put("name", selfName).put("fileCount", items.size)
                         .put("totalSize", total).toString()
                 )
 
@@ -149,19 +167,19 @@ class TransferService(
                 }
 
                 var done = 0L
-                for (m in metas) {
+                for (item in items) {
                     f.writeLine(
                         JSONObject().put("v", Proto.VERSION).put("type", Proto.FILE)
-                            .put("name", m.name).put("size", m.size).toString()
+                            .put("name", item.name).put("size", item.size).toString()
                     )
                     val base = done
-                    context.contentResolver.openInputStream(m.uri)?.use { ins ->
-                        f.writeBytes(ins, m.size) { sent ->
+                    item.open().use { ins ->
+                        f.writeBytes(ins, item.size) { sent ->
                             onProgress(minOf(1f, (base + sent) / total.toFloat()))
                         }
-                    } ?: throw Exception("No se pudo abrir ${m.name}")
-                    done += m.size
-                    onLog("Enviado: ${m.name} (${formatSize(m.size)})")
+                    }
+                    done += item.size
+                    onLog("Enviado: ${item.name} (${formatSize(item.size)})")
                 }
                 f.writeLine(msg(Proto.DONE))
                 onLog("Transferencia completada.")
@@ -175,7 +193,7 @@ class TransferService(
         }
     }
 
-    private data class FileMeta(val uri: Uri, val name: String, val size: Long)
+    private data class FileMeta(val name: String, val size: Long)
 
     private fun queryMeta(uri: Uri): FileMeta? {
         var name = "archivo"
@@ -197,7 +215,7 @@ class TransferService(
         } catch (_: Exception) {
             return null
         }
-        return FileMeta(uri, name, size)
+        return FileMeta(name, size)
     }
 
     private fun msg(type: String) =

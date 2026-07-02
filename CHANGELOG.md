@@ -6,6 +6,25 @@ y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-02
+
+### Añadido
+
+- **Explorador de archivos interno** en Android (navegación por carpetas, selección múltiple),
+  imprescindible en Android TV donde no existe selector de documentos del sistema.
+- App de escritorio: **cambiar la carpeta de descargas** desde la interfaz (se recuerda entre sesiones).
+- App de escritorio: **icono** propio (visible en el instalador, accesos directos y ventana).
+- Instalador Windows: **excepción de firewall** automática (permite recibir archivos en la LAN).
+
+### Corregido
+
+- **Descubrimiento del equipo Windows** en redes con varias interfaces: ahora emite el anuncio por la
+  dirección de broadcast de cada interfaz, de modo que los móviles/TV **sí ven el PC de escritorio** y
+  pueden enviarle archivos.
+- **Android TV**: el envío ya no falla con "ninguna aplicación puede procesar esta acción" (usa el
+  explorador interno).
+- App de escritorio: **botones que se cortaban** (tamaños mínimos de ventana y layout ajustado).
+
 ## [0.1.0] - 2026-07-02
 
 ### Añadido
@@ -19,5 +38,6 @@ y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Protocolo común documentado en `shared/protocol/PROTOCOL.md`.
 - CI/CD con GitHub Actions: build + publicación automática de **APK** y **MSI** en cada release (tag `v*`).
 
-[Unreleased]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jhonsu01/CompartirArchivosRED/releases/tag/v0.1.0
