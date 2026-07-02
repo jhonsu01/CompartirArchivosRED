@@ -19,5 +19,5 @@ y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Protocolo común documentado en `shared/protocol/PROTOCOL.md`.
 - CI/CD con GitHub Actions: build + publicación automática de **APK** y **MSI** en cada release (tag `v*`).
 
-[Unreleased]: https://github.com/USUARIO/CompartirArchivosRED/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/USUARIO/CompartirArchivosRED/releases/tag/v0.1.0
+[Unreleased]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/jhonsu01/CompartirArchivosRED/releases/tag/v0.1.0

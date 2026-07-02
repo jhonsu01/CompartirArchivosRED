@@ -5,8 +5,8 @@
 **Transferencia de archivos en red local (LAN/WiFi) entre Android y Windows**
 Descubrimiento automático · Emparejamiento por PIN · Sin nube, sin cables
 
-[![Release](https://img.shields.io/github/v/release/USUARIO/CompartirArchivosRED?label=última%20versión)](https://github.com/USUARIO/CompartirArchivosRED/releases)
-[![CI](https://github.com/USUARIO/CompartirArchivosRED/actions/workflows/ci.yml/badge.svg)](https://github.com/USUARIO/CompartirArchivosRED/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/jhonsu01/CompartirArchivosRED?label=última%20versión)](https://github.com/jhonsu01/CompartirArchivosRED/releases)
+[![CI](https://github.com/jhonsu01/CompartirArchivosRED/actions/workflows/ci.yml/badge.svg)](https://github.com/jhonsu01/CompartirArchivosRED/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-informational.svg)](LICENSE)
 
 </div>
@@ -25,7 +25,7 @@ Descubrimiento automático · Emparejamiento por PIN · Sin nube, sin cables
 
 ## 📦 Descargas
 
-Descarga la última versión desde la página de **[Releases](https://github.com/USUARIO/CompartirArchivosRED/releases)**:
+Descarga la última versión desde la página de **[Releases](https://github.com/jhonsu01/CompartirArchivosRED/releases)**:
 
 | Plataforma | Archivo                              |
 | ---------- | ------------------------------------ |
