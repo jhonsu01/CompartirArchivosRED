@@ -103,11 +103,12 @@ jobs:
         shell: pwsh
         run: |
           $v = "${{ steps.ver.outputs.version }}"
-          dotnet publish windows/src/App/CompartirArchivosRED.App.csproj -c Release -r win-x64 --self-contained true -p:Version=$v -o windows/publish
-          New-Item -ItemType Directory -Force dist | Out-Null
-          $pub = "$env:GITHUB_WORKSPACE/windows/publish"
-          $out = "$env:GITHUB_WORKSPACE/dist/CompartirArchivosRED-$v.msi"
-          Push-Location windows/installer
+          $ws = $env:GITHUB_WORKSPACE
+          $pub = Join-Path $ws "windows\publish"
+          $out = Join-Path $ws "dist\CompartirArchivosRED-$v.msi"
+          dotnet publish (Join-Path $ws "windows\src\App\CompartirArchivosRED.App.csproj") -c Release -r win-x64 --self-contained true -p:Version=$v -o $pub
+          New-Item -ItemType Directory -Force (Join-Path $ws "dist") | Out-Null
+          Push-Location (Join-Path $ws "windows\installer")
           wix build Package.wxs -arch x64 -d Version=$v -d PublishDir=$pub -ext WixToolset.UI.wixext -o $out
           Pop-Location
 
