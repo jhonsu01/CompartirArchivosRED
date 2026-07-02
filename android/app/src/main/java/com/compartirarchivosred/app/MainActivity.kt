@@ -76,6 +76,10 @@ fun AppScreen(vm: MainViewModel) {
         if (peer != null && uris.isNotEmpty()) vm.send(peer, uris)
     }
 
+    val folderPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri -> if (uri != null) vm.setReceiveFolder(uri) }
+
     if (explorerVisible && selectedPeer != null) {
         FileExplorerScreen(
             peerName = selectedPeer.name,
@@ -103,11 +107,34 @@ fun AppScreen(vm: MainViewModel) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
-                "Descargas: ${vm.downloadPath}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Spacer(Modifier.height(12.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "Carpeta de recepción",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            vm.receiveFolder,
+                            maxLines = 1,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedButton(onClick = { folderPicker.launch(null) }) { Text("Cambiar") }
+                }
+            }
 
             Spacer(Modifier.height(12.dp))
 
@@ -235,28 +262,41 @@ private fun IncomingBanner(info: IncomingInfo) {
 
 @Composable
 private fun PeerRow(peer: Peer, selected: Boolean, onClick: () -> Unit) {
-    Column(
+    val icon = when (peer.platform) {
+        "windows" -> "🖥️"
+        "android" -> "📱"
+        else -> "💻"
+    }
+    Row(
         Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .padding(vertical = 3.dp)
+            .clip(RoundedCornerShape(10.dp))
             .background(
                 if (selected) MaterialTheme.colorScheme.surfaceVariant
                 else androidx.compose.ui.graphics.Color.Transparent
             )
             .clickable(onClick = onClick)
-            .padding(12.dp)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            peer.name,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Text(
-            peer.display,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Text(icon, modifier = Modifier.padding(end = 12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                peer.name,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                peer.display,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (selected) {
+            Text("✓", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+        }
     }
 }
 

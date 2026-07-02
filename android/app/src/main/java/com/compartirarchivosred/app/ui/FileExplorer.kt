@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
+import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,6 +28,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,8 +45,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import com.compartirarchivosred.app.net.formatSize
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun FileExplorerScreen(
@@ -146,7 +152,7 @@ fun FileExplorerScreen(
             }
             items(entries, key = { it.absolutePath }) { entry ->
                 if (entry.isDirectory) {
-                    EntryRow(icon = "📁", name = entry.name, subtitle = "Carpeta", selected = false) {
+                    EntryRow(icon = "📁", name = entry.name, subtitle = "Carpeta · ${fmtDate(entry)}", selected = false) {
                         currentDir = entry
                     }
                 } else {
@@ -154,7 +160,7 @@ fun FileExplorerScreen(
                     EntryRow(
                         icon = if (isSel) "☑" else "📄",
                         name = entry.name,
-                        subtitle = formatSize(entry.length()),
+                        subtitle = "${formatSize(entry.length())} · ${fmtDate(entry)}",
                         selected = isSel
                     ) {
                         if (isSel) selected.remove(entry.absolutePath) else selected.add(entry.absolutePath)
@@ -164,14 +170,41 @@ fun FileExplorerScreen(
         }
 
         Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             TextButton(onClick = onClose) { Text("Cancelar") }
+            Spacer(Modifier.width(8.dp))
+            OutlinedButton(
+                onClick = { openFile(context, File(selected.first())) },
+                enabled = selected.size == 1
+            ) { Text("Abrir") }
             Spacer(Modifier.width(8.dp))
             Button(
                 onClick = { onPick(selected.map { File(it) }) },
                 enabled = selected.isNotEmpty()
             ) { Text("Enviar (${selected.size})") }
         }
+    }
+}
+
+private fun fmtDate(file: File): String =
+    SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(file.lastModified()))
+
+private fun openFile(context: Context, file: File) {
+    try {
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val ext = file.name.substringAfterLast('.', "").lowercase()
+        val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, mime)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, "Abrir con"))
+    } catch (e: Exception) {
+        Toast.makeText(context, "No hay una app para abrir este archivo.", Toast.LENGTH_LONG).show()
     }
 }
 

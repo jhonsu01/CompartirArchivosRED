@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.Uri
 import android.os.Environment
 import android.provider.OpenableColumns
+import android.webkit.MimeTypeMap
+import androidx.documentfile.provider.DocumentFile
 import com.compartirarchivosred.app.model.IncomingInfo
 import com.compartirarchivosred.app.model.Peer
 import org.json.JSONObject
@@ -11,6 +13,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.io.OutputStream
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
@@ -27,6 +30,9 @@ class TransferService(
 ) {
     @Volatile private var running = false
     private var serverSocket: ServerSocket? = null
+
+    /** Carpeta de recepción elegida por el usuario (SAF). Si es null, se usa [downloadDir]. */
+    @Volatile var receiveTreeUri: Uri? = null
 
     val downloadDir: File =
         (context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
@@ -89,16 +95,17 @@ class TransferService(
                 if (type == Proto.DONE) { ok = true; break }
                 if (type != Proto.FILE) continue
 
-                val dest = uniqueFile(sanitize(m.optString("name", "archivo")))
+                val name = sanitize(m.optString("name", "archivo"))
                 val size = m.optLong("size", 0)
                 val base = done
-                FileOutputStream(dest).use { fos ->
-                    f.copyExact(fos, size) { written ->
+                val (out, savedName) = openReceiveOutput(name)
+                out.use { os ->
+                    f.copyExact(os, size) { written ->
                         onProgress(minOf(1f, (base + written) / total.toFloat()))
                     }
                 }
                 done += size
-                onLog("Recibido: ${dest.name} (${formatSize(size)})")
+                onLog("Recibido: $savedName (${formatSize(size)})")
             }
         } catch (e: Exception) {
             onLog("Error en recepción: ${e.message}")
@@ -228,6 +235,37 @@ class TransferService(
         val name = raw.substringAfterLast('/').substringAfterLast('\\')
             .replace(Regex("[\\\\/:*?\"<>|]"), "_").trim()
         return name.ifBlank { "archivo" }
+    }
+
+    /**
+     * Abre el flujo de salida para un archivo entrante en la carpeta de recepción:
+     * usa la carpeta SAF elegida por el usuario si existe; si no, [downloadDir].
+     * Devuelve el flujo y el nombre final guardado.
+     */
+    private fun openReceiveOutput(name: String): Pair<OutputStream, String> {
+        val uri = receiveTreeUri
+        if (uri != null) {
+            try {
+                val tree = DocumentFile.fromTreeUri(context, uri)
+                if (tree != null && tree.canWrite()) {
+                    val doc = tree.createFile(mimeOf(name), name)
+                    if (doc != null) {
+                        val os = context.contentResolver.openOutputStream(doc.uri)
+                        if (os != null) return Pair(os, doc.name ?: name)
+                    }
+                }
+            } catch (_: Exception) {
+                // Si falla la carpeta SAF, se cae a la carpeta interna.
+            }
+        }
+        val file = uniqueFile(name)
+        return Pair(FileOutputStream(file), file.name)
+    }
+
+    private fun mimeOf(name: String): String {
+        val ext = name.substringAfterLast('.', "").lowercase()
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+            ?: "application/octet-stream"
     }
 
     private fun uniqueFile(name: String): File {
