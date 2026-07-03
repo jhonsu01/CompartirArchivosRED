@@ -6,6 +6,21 @@ y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-03
+
+### Añadido
+
+- **Administrador de archivos interno (pestaña "Archivos")** en Android: navega por carpetas y por defecto
+  muestra la **carpeta de recepción** para ver los archivos recibidos. Acciones por archivo:
+  **Abrir**, **Mover a**, **Renombrar** y **Borrar** (menú "Elegir acción"), funcional con control remoto en
+  Android TV. Botón "Inicio" para volver a la carpeta de recepción.
+- Navegación por **pestañas**: "Dispositivos" (enviar/recibir) y "Archivos" (administrador).
+
+### Notas
+
+- El administrador usa el sistema de archivos directamente, por lo que funciona en Android TV sin depender
+  de apps externas para mover/renombrar/borrar (solo "Abrir" requiere una app compatible instalada).
+
 ## [0.4.0] - 2026-07-02
 
 ### Añadido
@@ -74,7 +89,8 @@ y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Protocolo común documentado en `shared/protocol/PROTOCOL.md`.
 - CI/CD con GitHub Actions: build + publicación automática de **APK** y **MSI** en cada release (tag `v*`).
 
-[Unreleased]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.1.0...v0.2.0

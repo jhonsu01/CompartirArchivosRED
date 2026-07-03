@@ -38,6 +38,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -61,6 +63,7 @@ import com.compartirarchivosred.app.model.IncomingInfo
 import com.compartirarchivosred.app.model.Peer
 import com.compartirarchivosred.app.net.formatSize
 import com.compartirarchivosred.app.ui.FileExplorerScreen
+import com.compartirarchivosred.app.ui.FileManagerScreen
 import com.compartirarchivosred.app.ui.theme.AppTheme
 
 class MainActivity : ComponentActivity() {
@@ -84,6 +87,7 @@ fun AppScreen(vm: MainViewModel) {
     val selectedPeer = vm.peers.firstOrNull { it.id == selectedId }
     var explorerMode by remember { mutableStateOf<String?>(null) } // null | "send" | "folder"
     var logExpanded by remember { mutableStateOf(false) }
+    var tab by remember { mutableStateOf(0) } // 0 = Dispositivos, 1 = Archivos
 
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()
@@ -129,21 +133,42 @@ fun AppScreen(vm: MainViewModel) {
         Column(
             Modifier
                 .padding(padding)
-                .padding(16.dp)
                 .fillMaxSize()
         ) {
-            Text(
-                "📡 Compartir Archivos RED",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                "Tu dispositivo: ${vm.selfName}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(12.dp))
+            Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
+                Text(
+                    "📡 Compartir Archivos RED",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    "Tu dispositivo: ${vm.selfName}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            TabRow(
+                selectedTabIndex = tab,
+                containerColor = MaterialTheme.colorScheme.background,
+                contentColor = MaterialTheme.colorScheme.primary
+            ) {
+                Tab(selected = tab == 0, onClick = { tab = 0 }) {
+                    Text("Dispositivos", modifier = Modifier.padding(14.dp))
+                }
+                Tab(selected = tab == 1, onClick = { tab = 1 }) {
+                    Text("Archivos", modifier = Modifier.padding(14.dp))
+                }
+            }
+            if (tab == 1) {
+                Box(Modifier.weight(1f)) { FileManagerScreen(vm.receiveDirFile) }
+                return@Column
+            }
+            Column(
+                Modifier
+                    .weight(1f)
+                    .padding(16.dp)
+            ) {
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -277,6 +302,7 @@ fun AppScreen(vm: MainViewModel) {
                 ) {
                     Text(if (selectedPeer != null) "📤 Enviar a ${selectedPeer.name}" else "📤 Enviar")
                 }
+            }
             }
         }
     }
