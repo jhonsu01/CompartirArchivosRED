@@ -1,9 +1,9 @@
 package com.compartirarchivosred.app.ui
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -12,9 +12,7 @@ import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,11 +39,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.compartirarchivosred.app.net.formatSize
 import java.io.File
@@ -54,13 +50,17 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Administrador de archivos interno: navega por carpetas y ofrece acciones
- * Abrir / Mover a / Renombrar / Borrar. Arranca en la carpeta de recepción.
+ * Administrador de archivos interno: navega libremente por el almacenamiento y
+ * ofrece acciones Abrir / Mover a / Renombrar / Borrar. Arranca en la carpeta
+ * de recepción y puede saltar a la raíz del almacenamiento.
  */
 @Composable
 fun FileManagerScreen(startDir: File) {
     val context = LocalContext.current
-    var currentDir by remember { mutableStateOf(if (startDir.isDirectory) startDir else (startDir.parentFile ?: startDir)) }
+    val root = remember { Environment.getExternalStorageDirectory() ?: startDir }
+    val home = remember { if (startDir.isDirectory) startDir else (startDir.parentFile ?: root) }
+
+    var currentDir by remember { mutableStateOf(home) }
     var refreshKey by remember { mutableIntStateOf(0) }
 
     var actionFile by remember { mutableStateOf<File?>(null) }
@@ -77,11 +77,11 @@ fun FileManagerScreen(startDir: File) {
 
     val entries = remember(currentDir, refreshKey) { listChildren(currentDir) }
     val canRead = remember(currentDir, refreshKey) { currentDir.listFiles() != null }
+    val canGoUp = currentDir.absolutePath != root.absolutePath && currentDir.parentFile != null
 
     Column(
         Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -92,9 +92,8 @@ fun FileManagerScreen(startDir: File) {
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.weight(1f)
             )
-            TextButton(onClick = { currentDir = if (startDir.isDirectory) startDir else (startDir.parentFile ?: startDir) }) {
-                Text("Inicio")
-            }
+            TextButton(onClick = { currentDir = home }) { Text("Recibidos") }
+            TextButton(onClick = { currentDir = root }) { Text("Almacenamiento") }
         }
         Text(
             currentDir.absolutePath,
@@ -114,71 +113,65 @@ fun FileManagerScreen(startDir: File) {
                 )
                 TextButton(onClick = { movingFile = null }) { Text("Cancelar") }
                 Spacer(Modifier.width(8.dp))
-                Button(onClick = {
-                    if (moveInto(mf, currentDir)) {
-                        Toast.makeText(context, "Movido a ${currentDir.name}", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "No se pudo mover el archivo.", Toast.LENGTH_LONG).show()
-                    }
-                    movingFile = null
-                    refreshKey++
-                }) { Text("Mover aquí") }
+                Button(
+                    onClick = {
+                        val target = movingFile
+                        if (target != null && moveInto(target, currentDir)) {
+                            Toast.makeText(context, "Movido a ${currentDir.name}", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "No se pudo mover el archivo.", Toast.LENGTH_LONG).show()
+                        }
+                        movingFile = null
+                        refreshKey++
+                    },
+                    enabled = canRead
+                ) { Text("Mover aquí") }
             }
         }
 
         Spacer(Modifier.height(8.dp))
 
-        if (!canRead) {
-            Text(
-                "No se pueden leer los archivos de esta carpeta. Concede acceso al almacenamiento.",
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(Modifier.height(12.dp))
-            Button(onClick = {
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        try {
-                            manageLauncher.launch(
-                                Intent(
-                                    Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                                    Uri.parse("package:${context.packageName}")
-                                )
-                            )
-                        } catch (e: Exception) {
-                            manageLauncher.launch(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
-                        }
-                    } else {
-                        permLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-                    }
-                } catch (e: Exception) {
-                    Toast.makeText(context, "No se pudo abrir la pantalla de permisos.", Toast.LENGTH_LONG).show()
-                }
-            }) { Text("Conceder acceso") }
-            return@Column
-        }
-
         LazyColumn(Modifier.fillMaxSize()) {
-            if (currentDir.parentFile != null) {
+            if (canGoUp) {
                 item {
                     ItemRow(icon = "⬆", name = "..", subtitle = "Subir un nivel") {
-                        currentDir = currentDir.parentFile ?: currentDir
+                        currentDir = currentDir.parentFile ?: root
                     }
                 }
             }
-            items(entries, key = { it.absolutePath }) { entry ->
-                if (entry.isDirectory) {
-                    val count = entry.listFiles()?.size
-                    ItemRow(
-                        icon = "📁",
-                        name = entry.name,
-                        subtitle = if (count != null) "$count elementos · ${fmtDate(entry)}" else fmtDate(entry)
-                    ) { currentDir = entry }
-                } else {
-                    ItemRow(
-                        icon = "📄",
-                        name = entry.name,
-                        subtitle = "${formatSize(entry.length())} · ${fmtDate(entry)}"
-                    ) { if (movingFile == null) actionFile = entry }
+            if (!canRead) {
+                item {
+                    Column(Modifier.fillMaxWidth().padding(12.dp)) {
+                        Text(
+                            "No se pueden leer los archivos de esta carpeta.",
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row {
+                            Button(onClick = {
+                                requestStorage(context, manageLauncher, permLauncher)
+                            }) { Text("Conceder acceso") }
+                            Spacer(Modifier.width(8.dp))
+                            TextButton(onClick = { currentDir = root }) { Text("Ir al almacenamiento") }
+                        }
+                    }
+                }
+            } else {
+                items(entries, key = { it.absolutePath }) { entry ->
+                    if (entry.isDirectory) {
+                        val count = entry.listFiles()?.size
+                        ItemRow(
+                            icon = "📁",
+                            name = entry.name,
+                            subtitle = if (count != null) "$count elementos · ${fmtDate(entry)}" else fmtDate(entry)
+                        ) { currentDir = entry }
+                    } else {
+                        ItemRow(
+                            icon = "📄",
+                            name = entry.name,
+                            subtitle = "${formatSize(entry.length())} · ${fmtDate(entry)}"
+                        ) { if (movingFile == null) actionFile = entry }
+                    }
                 }
             }
         }
@@ -207,9 +200,7 @@ fun FileManagerScreen(startDir: File) {
         AlertDialog(
             onDismissRequest = { renameFile = null },
             title = { Text("Renombrar") },
-            text = {
-                OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true)
-            },
+            text = { OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true) },
             confirmButton = {
                 TextButton(onClick = {
                     val target = File(f.parentFile, name.trim())
@@ -311,36 +302,52 @@ private fun moveInto(src: File, destDir: File): Boolean {
 private fun fmtDate(file: File): String =
     SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(file.lastModified()))
 
+/** Abre un archivo con la app adecuada según su tipo (APK -> instalador de paquetes). */
 private fun openFile(context: Context, file: File) {
     try {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         val ext = file.name.substringAfterLast('.', "").lowercase()
-        val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
+        val mime = when (ext) {
+            "apk" -> "application/vnd.android.package-archive"
+            else -> MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
+        }
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, mime)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        if (intent.resolveActivity(context.packageManager) == null) {
-            Toast.makeText(
-                context,
-                "No hay ninguna app en este dispositivo para abrir este archivo.",
-                Toast.LENGTH_LONG
-            ).show()
-            return
-        }
-        context.startActivity(Intent.createChooser(intent, "Abrir con"))
+        context.startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(
+            context,
+            "No hay una app instalada para abrir este tipo de archivo.",
+            Toast.LENGTH_LONG
+        ).show()
     } catch (e: Exception) {
         Toast.makeText(context, "No se pudo abrir el archivo.", Toast.LENGTH_LONG).show()
     }
 }
 
-@Suppress("unused")
-private fun hasStorageAccess(context: Context): Boolean {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        Environment.isExternalStorageManager()
-    } else {
-        ContextCompat.checkSelfPermission(
-            context, Manifest.permission.READ_EXTERNAL_STORAGE
-        ) == PackageManager.PERMISSION_GRANTED
+private fun requestStorage(
+    context: Context,
+    manageLauncher: androidx.activity.result.ActivityResultLauncher<Intent>,
+    permLauncher: androidx.activity.result.ActivityResultLauncher<String>
+) {
+    try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                manageLauncher.launch(
+                    Intent(
+                        Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                        Uri.parse("package:${context.packageName}")
+                    )
+                )
+            } catch (e: Exception) {
+                manageLauncher.launch(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+            }
+        } else {
+            permLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+    } catch (e: Exception) {
+        Toast.makeText(context, "No se pudo abrir la pantalla de permisos.", Toast.LENGTH_LONG).show()
     }
 }

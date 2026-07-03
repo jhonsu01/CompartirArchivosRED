@@ -242,20 +242,21 @@ private fun openFile(context: Context, file: File) {
     try {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         val ext = file.name.substringAfterLast('.', "").lowercase()
-        val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
+        val mime = when (ext) {
+            "apk" -> "application/vnd.android.package-archive"
+            else -> MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
+        }
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, mime)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        if (intent.resolveActivity(context.packageManager) == null) {
-            Toast.makeText(
-                context,
-                "No hay ninguna app en este dispositivo para abrir este archivo.",
-                Toast.LENGTH_LONG
-            ).show()
-            return
-        }
-        context.startActivity(Intent.createChooser(intent, "Abrir con"))
+        context.startActivity(intent)
+    } catch (e: android.content.ActivityNotFoundException) {
+        Toast.makeText(
+            context,
+            "No hay una app instalada para abrir este tipo de archivo.",
+            Toast.LENGTH_LONG
+        ).show()
     } catch (e: Exception) {
         Toast.makeText(context, "No se pudo abrir el archivo.", Toast.LENGTH_LONG).show()
     }

@@ -38,9 +38,26 @@ class TransferService(
     /** Carpeta de recepción elegida por el explorador interno (File). Si es null, se usa [downloadDir]. */
     @Volatile var receiveDir: File? = null
 
-    val downloadDir: File =
+    /** Carpeta privada de la app (siempre escribible, sin permisos). Respaldo. */
+    private val appPrivateDir: File =
         (context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
-            ?: File(context.filesDir, "Downloads")).apply { mkdirs() }
+            ?: File(context.filesDir, "Download")).apply { mkdirs() }
+
+    /**
+     * Carpeta de recepción por defecto: una carpeta pública navegable
+     * (Download/CompartirArchivosRED) si se puede escribir en ella; si no
+     * (sin permiso de almacenamiento), la carpeta privada de la app.
+     */
+    val downloadDir: File
+        get() = try {
+            val pub = File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                "CompartirArchivosRED"
+            )
+            if (pub.exists() || pub.mkdirs()) pub else appPrivateDir
+        } catch (e: Exception) {
+            appPrivateDir
+        }
 
     fun startServer() {
         if (running) return

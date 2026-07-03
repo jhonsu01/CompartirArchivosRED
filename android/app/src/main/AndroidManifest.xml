@@ -19,6 +19,9 @@
     <!-- Notificaciones de transferencia completada / archivo recibido -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Instalar APKs recibidos desde el administrador ("Abrir" en un .apk) -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <!-- Visibilidad de paquetes (Android 11+) para detectar si existe selector de
          documentos / visor de archivos en el dispositivo. -->
     <queries>

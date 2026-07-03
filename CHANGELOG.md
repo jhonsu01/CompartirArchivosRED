@@ -6,6 +6,24 @@ y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-03
+
+### Corregido
+
+- **Navegación del administrador de archivos**: ya se puede navegar libremente por todo el almacenamiento.
+  La carpeta de recepción por defecto pasa a una carpeta **pública** navegable
+  (`Download/CompartirArchivosRED`) en lugar de la interna de la app (cuyo directorio padre `Android/data`
+  Android no deja listar). El botón "Subir un nivel" ya no desaparece (no te deja atascado) y la raíz de
+  navegación es el almacenamiento del dispositivo.
+- **Abrir archivos** ahora usa el gestor adecuado según el tipo: los **.apk** abren el **instalador de
+  paquetes** (con permiso `REQUEST_INSTALL_PACKAGES`); imágenes, audio, vídeo, texto, etc. abren la app
+  compatible instalada. Si no hay ninguna, avisa con claridad.
+
+### Añadido
+
+- Atajos **"Recibidos"** y **"Almacenamiento"** en el administrador para saltar a la carpeta de recepción o
+  a la raíz del almacenamiento.
+
 ## [0.5.0] - 2026-07-03
 
 ### Añadido
@@ -89,7 +107,8 @@ y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Protocolo común documentado en `shared/protocol/PROTOCOL.md`.
 - CI/CD con GitHub Actions: build + publicación automática de **APK** y **MSI** en cada release (tag `v*`).
 
-[Unreleased]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.2.0...v0.3.0
