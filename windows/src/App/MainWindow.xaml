@@ -6,7 +6,7 @@
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BgBrush}"
         TextElement.Foreground="{StaticResource TextBrush}"
-        FontFamily="Segoe UI" FontSize="14">
+        FontFamily="Segoe UI" FontSize="16">
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -20,7 +20,7 @@
 
         <!-- Cabecera -->
         <StackPanel Grid.Row="0" Margin="0,0,0,10">
-            <TextBlock Text="📡 Compartir Archivos RED" FontSize="24" FontWeight="Bold"/>
+            <TextBlock Text="📡 Compartir Archivos RED" FontSize="28" FontWeight="Bold"/>
             <TextBlock x:Name="SelfInfo" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
         </StackPanel>
 
@@ -70,8 +70,8 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel>
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="15"/>
-                                <TextBlock Text="{Binding Display}" Foreground="{StaticResource MutedBrush}" FontSize="12"/>
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="17"/>
+                                <TextBlock Text="{Binding Display}" Foreground="{StaticResource MutedBrush}" FontSize="13"/>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -86,7 +86,7 @@
                          BorderThickness="0"/>
             <TextBox x:Name="LogBox" Height="84" Margin="0,10,0,0" IsReadOnly="True"
                      Background="{StaticResource SurfaceBrush}" Foreground="{StaticResource MutedBrush}"
-                     BorderThickness="0" FontFamily="Consolas" FontSize="12"
+                     BorderThickness="0" FontFamily="Consolas" FontSize="13"
                      VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
         </StackPanel>
 

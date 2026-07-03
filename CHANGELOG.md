@@ -6,6 +6,19 @@ y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-03
+
+### Corregido
+
+- **Icono en Android TV**: se añaden iconos **PNG** en todas las densidades, **icono adaptativo** y un
+  **banner** de TV; antes en pantallas grandes salía un recuadro gris (el icono era un vector que los
+  lanzadores de TV no renderizan). La app ahora aparece con su icono/banner en el lanzador de Android TV
+  (categoría `LEANBACK_LAUNCHER` + `uses-feature` de leanback/touchscreen no requeridos).
+
+### Cambiado
+
+- **App de escritorio (Windows)**: tamaño de fuente algo mayor para mejor legibilidad.
+
 ## [0.6.0] - 2026-07-03
 
 ### Corregido
@@ -107,7 +120,8 @@ y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 - Protocolo común documentado en `shared/protocol/PROTOCOL.md`.
 - CI/CD con GitHub Actions: build + publicación automática de **APK** y **MSI** en cada release (tag `v*`).
 
-[Unreleased]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jhonsu01/CompartirArchivosRED/compare/v0.3.0...v0.4.0
