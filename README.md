@@ -80,6 +80,8 @@ cd android
 - La versión vive en [`VERSION`](VERSION) y en `CHANGELOG.md`.
 - Para publicar: sube la versión, crea el tag `vX.Y.Z` y haz push del tag →
   GitHub Actions compila y crea la Release con el APK y el MSI adjuntos.
+- **Solo se mantiene la última release:** al publicar una nueva versión, el workflow
+  elimina automáticamente las releases (y tags) anteriores, dejando únicamente la más reciente.
 
 ## 🔒 Protocolo y seguridad
 

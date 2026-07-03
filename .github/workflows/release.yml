@@ -155,3 +155,18 @@ jobs:
             | 🖥️ Windows | `CompartirArchivosRED-*.msi` (self-contained, no requiere .NET) |
 
             Consulta el [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) para el detalle de cambios.
+
+      - name: Mantener solo la última release (borrar anteriores)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current="${{ github.ref_name }}"
+          echo "Release actual: $current. Eliminando releases anteriores…"
+          gh release list --repo "${{ github.repository }}" --limit 100 --json tagName --jq '.[].tagName' \
+            | while read -r tag; do
+                if [ -n "$tag" ] && [ "$tag" != "$current" ]; then
+                  echo "Borrando release y tag: $tag"
+                  gh release delete "$tag" --repo "${{ github.repository }}" --yes --cleanup-tag \
+                    || echo "Aviso: no se pudo borrar $tag"
+                fi
+              done
